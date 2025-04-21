@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fastap;G 認証</title>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    .status {
+      margin: 20px;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fastap;G SP-API認証</h1>
+  <div id="status" class="status">認証コードを処理中...</div>
+  
+  <script>
+    // URLパラメータから認証コードとstateを取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const authCode = urlParams.get('spapi_oauth_code');
+    const state = urlParams.get('state');
+    
+    window.onload = function() {
+      const statusDiv = document.getElementById('status');
+      
+      if (authCode && state) {
+        statusDiv.className = 'status success';
+        statusDiv.innerHTML = `
+          <p>認証成功！</p>
+          <p>このウィンドウは安全に閉じることができます。</p>
+        `;
+        
+        // 拡張機能にメッセージを送信
+        window.opener && window.opener.postMessage({
+          source: 'fastapg-auth',
+          success: true,
+          authCode,
+          state
+        }, '*');
+      } else {
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = `
+          <p>認証情報が見つかりません。</p>
+          <p>設定画面から再度認証を行ってください。</p>
+        `;
+      }
+    };
+  </script>
+</body>
+</html>
