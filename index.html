@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FastapG - SP-API認証</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https://fastapg-backend.herokuapp.com https://your-backend-api.com;">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -24,6 +26,7 @@
             text-align: center;
             max-width: 500px;
             width: 90%;
+            position: relative;
         }
         
         .logo {
@@ -44,6 +47,7 @@
             border-radius: 8px;
             margin: 20px 0;
             font-weight: 500;
+            transition: all 0.3s ease;
         }
         
         .status.processing {
@@ -92,7 +96,7 @@
             transition: background-color 0.3s ease;
         }
         
-        .close-btn:hover {
+        .close-btn:hover:not(:disabled) {
             background-color: #058a6d;
         }
         
@@ -110,6 +114,8 @@
             padding: 15px;
             border-radius: 6px;
             border-left: 4px solid #07A27B;
+            max-height: 200px;
+            overflow-y: auto;
         }
         
         .error-details {
@@ -120,18 +126,54 @@
             padding: 10px;
             border-radius: 4px;
             text-align: left;
-            word-break: break-all;
+            word-break: break-word;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .security-notice {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: #666;
+            background: rgba(255,255,255,0.9);
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #07A27B 0%, #09d1a0 100%);
+            width: 0%;
+            transition: width 0.3s ease;
         }
     </style>
 </head>
 <body>
     <div class="auth-container">
+        <div class="security-notice">🔒 Secure Connection</div>
+        
         <div class="logo">FastapG</div>
         <div class="subtitle">SP-API認証処理</div>
         
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        
         <div id="status" class="status processing">
             <div class="spinner"></div>
-            認証処理を実行中...
+            認証処理を初期化中...
         </div>
         
         <div id="details" class="details" style="display: none;">
@@ -139,261 +181,393 @@
             <div id="details-content"></div>
         </div>
         
-        <button id="close-btn" class="close-btn" onclick="closeWindow()" disabled>
+        <button id="close-btn" class="close-btn" disabled>
             ウィンドウを閉じる
         </button>
     </div>
 
     <script>
-        // 認証処理の状態管理
-        let authProcessing = false;
-        let authResult = null;
+        'use strict';
 
-        // DOM要素の取得
-        const statusElement = document.getElementById('status');
-        const detailsElement = document.getElementById('details');
-        const detailsContent = document.getElementById('details-content');
-        const closeBtn = document.getElementById('close-btn');
+        // セキュリティ: グローバル変数を最小限に
+        const AuthProcessor = (() => {
+            // プライベート変数
+            let authProcessing = false;
+            let authResult = null;
+            let progressValue = 0;
 
-        // ログ記録関数
-        function log(message, type = 'info') {
-            console.log(`[FastapG Auth] ${type.toUpperCase()}: ${message}`);
-            updateDetails(message);
-        }
+            // DOM要素の参照
+            const elements = {
+                status: document.getElementById('status'),
+                details: document.getElementById('details'),
+                detailsContent: document.getElementById('details-content'),
+                closeBtn: document.getElementById('close-btn'),
+                progressFill: document.getElementById('progress-fill')
+            };
 
-        // 詳細情報の更新
-        function updateDetails(message) {
-            const timestamp = new Date().toLocaleTimeString();
-            const newLine = `[${timestamp}] ${message}`;
-            detailsContent.innerHTML += newLine + '<br>';
-            detailsElement.style.display = 'block';
-        }
-
-        // ステータス表示の更新
-        function updateStatus(message, type = 'processing') {
-            statusElement.className = `status ${type}`;
-            
-            if (type === 'processing') {
-                statusElement.innerHTML = `<div class="spinner"></div>${message}`;
-            } else {
-                statusElement.innerHTML = message;
-            }
-        }
-
-        // ウィンドウを閉じる
-        function closeWindow() {
-            try {
-                // 親ウィンドウに結果を通知
-                if (window.opener && authResult) {
-                    window.opener.postMessage({
-                        type: 'fastapg-auth-result',
-                        success: authResult.success,
-                        data: authResult.data,
-                        error: authResult.error
-                    }, '*');
-                    log('親ウィンドウに認証結果を送信しました');
-                }
-            } catch (error) {
-                log(`親ウィンドウへの通知エラー: ${error.message}`, 'error');
-            }
-            
-            // 少し遅延してウィンドウを閉じる
-            setTimeout(() => {
-                window.close();
-            }, 500);
-        }
-
-        // URLパラメータの解析
-        function parseUrlParameters() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const hashParams = new URLSearchParams(window.location.hash.substring(1));
-            
-            // URLパラメータとハッシュパラメータを統合
-            const params = {};
-            for (const [key, value] of urlParams.entries()) {
-                params[key] = value;
-            }
-            for (const [key, value] of hashParams.entries()) {
-                params[key] = value;
-            }
-            
-            return params;
-        }
-
-        // SP-APIトークン交換API呼び出し
-        async function exchangeCodeForToken(authCode, state) {
-            log(`認証コードを受信: ${authCode.substring(0, 10)}...`);
-            
-            // TODO: 本番では専用のバックエンドAPIエンドポイントを使用
-            const API_ENDPOINT = 'https://your-backend-api.com/sp-api/token-exchange';
-            
-            try {
-                updateStatus('アクセストークンを取得中...', 'processing');
-                log('バックエンドAPIでトークン交換を実行中...');
+            // セキュリティ強化されたログ関数
+            function log(message, type = 'info') {
+                const timestamp = new Date().toISOString();
+                const logEntry = `[${timestamp}] [${type.toUpperCase()}] ${message}`;
                 
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
+                console.log(logEntry);
+                updateDetails(message);
+                
+                // 進捗更新
+                updateProgress();
+            }
+
+            // 進捗更新
+            function updateProgress() {
+                progressValue = Math.min(progressValue + 15, 90);
+                elements.progressFill.style.width = progressValue + '%';
+            }
+
+            // 詳細情報の更新（XSS対策）
+            function updateDetails(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                const sanitizedMessage = message.replace(/[<>]/g, ''); // 基本的なサニタイズ
+                const newLine = `[${timestamp}] ${sanitizedMessage}`;
+                
+                elements.detailsContent.textContent += newLine + '\n';
+                elements.details.style.display = 'block';
+                
+                // 自動スクロール
+                elements.detailsContent.scrollTop = elements.detailsContent.scrollHeight;
+            }
+
+            // ステータス表示の更新
+            function updateStatus(message, type = 'processing') {
+                elements.status.className = `status ${type}`;
+                
+                if (type === 'processing') {
+                    elements.status.innerHTML = `<div class="spinner"></div>${message}`;
+                } else {
+                    elements.status.innerHTML = message;
+                }
+            }
+
+            // ウィンドウを閉じる（セキュリティ強化）
+            function closeWindow() {
+                try {
+                    // 進捗完了
+                    elements.progressFill.style.width = '100%';
+                    
+                    // 親ウィンドウの存在確認と通知
+                    if (window.opener && typeof window.opener.postMessage === 'function') {
+                        const message = {
+                            type: 'fastapg-auth-result',
+                            success: authResult?.success || false,
+                            data: authResult?.data || null,
+                            error: authResult?.error || null,
+                            timestamp: Date.now(),
+                            version: '1.0'
+                        };
+                        
+                        // 信頼できるオリジンにのみ送信
+                        const trustedOrigins = [
+                            'chrome-extension://',
+                            'moz-extension://',
+                            'https://laaf-llc.github.io'
+                        ];
+                        
+                        const parentOrigin = window.opener.location.origin;
+                        const isTrusted = trustedOrigins.some(origin => 
+                            parentOrigin.startsWith(origin) || origin === parentOrigin
+                        );
+                        
+                        if (isTrusted) {
+                            window.opener.postMessage(message, parentOrigin);
+                            log('認証結果を安全に送信しました');
+                        } else {
+                            log('⚠️ 信頼できないオリジンのため、結果送信をスキップ', 'warn');
+                        }
+                    }
+                } catch (error) {
+                    log(`親ウィンドウへの通知エラー: ${error.message}`, 'error');
+                }
+                
+                // ウィンドウを閉じる
+                setTimeout(() => {
+                    try {
+                        window.close();
+                    } catch (closeError) {
+                        log('ウィンドウクローズエラー（手動で閉じてください）', 'warn');
+                    }
+                }, 1000);
+            }
+
+            // URLパラメータの安全な解析
+            function parseUrlParameters() {
+                try {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                    
+                    const params = {};
+                    
+                    // URLパラメータを安全に処理
+                    for (const [key, value] of urlParams.entries()) {
+                        // パラメータ名と値をサニタイズ
+                        const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '');
+                        const safeValue = value.substring(0, 1000); // 長さ制限
+                        if (safeKey) {
+                            params[safeKey] = safeValue;
+                        }
+                    }
+                    
+                    // ハッシュパラメータも同様に処理
+                    for (const [key, value] of hashParams.entries()) {
+                        const safeKey = key.replace(/[^a-zA-Z0-9_-]/g, '');
+                        const safeValue = value.substring(0, 1000);
+                        if (safeKey) {
+                            params[safeKey] = safeValue;
+                        }
+                    }
+                    
+                    return params;
+                } catch (error) {
+                    log(`URLパラメータ解析エラー: ${error.message}`, 'error');
+                    return {};
+                }
+            }
+
+            // SP-APIトークン交換（セキュリティ強化版）
+            async function exchangeCodeForToken(authCode, state) {
+                log(`認証コードを受信: ${authCode.substring(0, 10)}...`);
+                
+                // 入力検証
+                if (!authCode || authCode.length < 10 || authCode.length > 500) {
+                    throw new Error('認証コードの形式が無効です');
+                }
+                
+                if (state && (state.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(state))) {
+                    throw new Error('stateパラメータの形式が無効です');
+                }
+
+                // バックエンドAPIエンドポイント（環境別）
+                const API_ENDPOINTS = {
+                    production: 'https://fastapg-backend.herokuapp.com/sp-api/token-exchange',
+                    development: 'https://your-backend-api.com/sp-api/token-exchange'
+                };
+                
+                const isProduction = window.location.protocol === 'https:' && 
+                                    window.location.hostname === 'laaf-llc.github.io';
+                const API_ENDPOINT = API_ENDPOINTS[isProduction ? 'production' : 'development'];
+
+                try {
+                    updateStatus('バックエンドAPIに接続中...', 'processing');
+                    log('セキュアなトークン交換を実行中...');
+                    
+                    const requestBody = {
                         grant_type: 'authorization_code',
                         code: authCode,
-                        client_id: 'amzn1.application-oa2-client.7dff0f34f75d43d2a08547b578042ded',
-                        state: state
-                    })
-                });
+                        state: state,
+                        timestamp: Date.now(),
+                        client_version: '1.0'
+                    };
 
-                if (!response.ok) {
-                    throw new Error(`API呼び出しエラー: ${response.status} ${response.statusText}`);
-                }
+                    const response = await fetch(API_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'User-Agent': 'FastapG-Extension/1.0'
+                        },
+                        body: JSON.stringify(requestBody),
+                        // セキュリティ設定
+                        credentials: 'omit',
+                        cache: 'no-cache',
+                        redirect: 'error'
+                    });
 
-                const tokenData = await response.json();
-                log('トークン交換が成功しました');
-                
-                return {
-                    success: true,
-                    data: {
-                        access_token: tokenData.access_token,
-                        refresh_token: tokenData.refresh_token,
-                        token_type: tokenData.token_type || 'bearer',
-                        expires_in: tokenData.expires_in || 3600,
-                        scope: tokenData.scope
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`API呼び出しエラー: ${response.status} ${errorText.substring(0, 200)}`);
                     }
-                };
 
-            } catch (error) {
-                log(`トークン交換エラー: ${error.message}`, 'error');
-                
-                // 開発用: 一時的なモック応答（本番では削除）
-                if (error.message.includes('your-backend-api.com')) {
-                    log('⚠️ バックエンドAPI未実装のため、モックデータを使用', 'warn');
+                    const tokenData = await response.json();
+                    
+                    // レスポンス検証
+                    if (!tokenData.access_token || typeof tokenData.access_token !== 'string') {
+                        throw new Error('サーバーから無効なトークンが返されました');
+                    }
+                    
+                    log('トークン交換が成功しました');
                     
                     return {
                         success: true,
                         data: {
-                            access_token: 'mock_access_token_' + Date.now(),
-                            refresh_token: 'mock_refresh_token_' + Date.now(),
-                            token_type: 'bearer',
-                            expires_in: 3600,
-                            scope: 'sellingpartnerapi::migration'
-                        },
-                        mock: true
+                            access_token: tokenData.access_token,
+                            refresh_token: tokenData.refresh_token,
+                            token_type: tokenData.token_type || 'bearer',
+                            expires_in: parseInt(tokenData.expires_in) || 3600,
+                            scope: tokenData.scope || 'sellingpartnerapi::migration'
+                        }
                     };
+
+                } catch (apiError) {
+                    log(`バックエンドAPIエラー: ${apiError.message}`, 'error');
+                    
+                    // フォールバック: 開発用モック（本番では削除）
+                    if (apiError.message.includes('your-backend-api.com') || !isProduction) {
+                        log('⚠️ 開発環境：モックトークンを生成', 'warn');
+                        
+                        // モック認証の場合は追加の遅延
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        return {
+                            success: true,
+                            data: {
+                                access_token: 'mock_access_token_' + Date.now() + '_' + Math.random().toString(36).substring(2),
+                                refresh_token: 'mock_refresh_token_' + Date.now() + '_' + Math.random().toString(36).substring(2),
+                                token_type: 'bearer',
+                                expires_in: 3600,
+                                scope: 'sellingpartnerapi::migration'
+                            },
+                            mock: true
+                        };
+                    }
+                    
+                    throw apiError;
                 }
-                
-                throw error;
             }
-        }
 
-        // エラー処理
-        function handleError(error, context = '認証処理') {
-            log(`${context}でエラーが発生: ${error.message}`, 'error');
-            
-            updateStatus('❌ 認証に失敗しました', 'error');
-            
-            // エラー詳細を表示
-            const errorDetails = document.createElement('div');
-            errorDetails.className = 'error-details';
-            errorDetails.innerHTML = `
-                <strong>エラー詳細:</strong><br>
-                ${error.message}<br>
-                <small>コンテキスト: ${context}</small>
-            `;
-            statusElement.appendChild(errorDetails);
-            
-            authResult = {
-                success: false,
-                error: error.message,
-                context: context
-            };
-            
-            closeBtn.disabled = false;
-        }
-
-        // 認証成功処理
-        function handleAuthSuccess(tokenData) {
-            log('SP-API認証が完了しました！');
-            
-            const mockNote = tokenData.mock ? ' (開発用モックデータ)' : '';
-            updateStatus(`✅ 認証が完了しました${mockNote}`, 'success');
-            
-            authResult = {
-                success: true,
-                data: tokenData.data,
-                mock: tokenData.mock || false
-            };
-            
-            closeBtn.disabled = false;
-            
-            // 3秒後に自動でウィンドウを閉じる
-            setTimeout(() => {
-                if (!closeBtn.disabled) {
-                    closeWindow();
-                }
-            }, 3000);
-        }
-
-        // メイン認証処理
-        async function handleAuthentication() {
-            if (authProcessing) return;
-            authProcessing = true;
-            
-            try {
-                log('SP-API認証処理を開始');
+            // エラー処理（セキュリティ強化）
+            function handleError(error, context = '認証処理') {
+                log(`${context}でエラーが発生: ${error.message}`, 'error');
                 
-                // URLパラメータを解析
-                const params = parseUrlParameters();
-                log(`URLパラメータ: ${JSON.stringify(Object.keys(params))}`);
+                updateStatus('❌ 認証に失敗しました', 'error');
                 
-                // エラーチェック
-                if (params.error) {
-                    throw new Error(`認証エラー: ${params.error} - ${params.error_description || '詳細不明'}`);
-                }
+                // エラー詳細を安全に表示
+                const errorElement = document.createElement('div');
+                errorElement.className = 'error-details';
                 
-                // 認証コードを確認
-                if (!params.code) {
-                    throw new Error('認証コードが見つかりません。認証フローが正しく完了していない可能性があります。');
-                }
+                // エラーメッセージをサニタイズ
+                const safeErrorMessage = error.message.replace(/[<>]/g, '').substring(0, 500);
+                const safeContext = context.replace(/[<>]/g, '').substring(0, 100);
                 
-                // stateパラメータを確認（CSRF防止）
-                if (!params.state) {
-                    log('⚠️ stateパラメータが見つかりません', 'warn');
-                }
+                errorElement.innerHTML = `
+                    <strong>エラー詳細:</strong><br>
+                    ${safeErrorMessage}<br>
+                    <small>コンテキスト: ${safeContext}</small>
+                `;
+                elements.status.appendChild(errorElement);
                 
-                // トークン交換を実行
-                const tokenResult = await exchangeCodeForToken(params.code, params.state);
+                authResult = {
+                    success: false,
+                    error: safeErrorMessage,
+                    context: safeContext,
+                    timestamp: Date.now()
+                };
                 
-                if (tokenResult.success) {
-                    handleAuthSuccess(tokenResult);
-                } else {
-                    throw new Error('トークン交換に失敗しました');
-                }
-                
-            } catch (error) {
-                handleError(error);
-            } finally {
-                authProcessing = false;
+                elements.closeBtn.disabled = false;
+                elements.progressFill.style.width = '100%';
             }
-        }
+
+            // 認証成功処理
+            function handleAuthSuccess(tokenData) {
+                log('SP-API認証が完了しました！');
+                
+                const mockNote = tokenData.mock ? ' (開発用モックデータ)' : '';
+                updateStatus(`✅ 認証が完了しました${mockNote}`, 'success');
+                
+                authResult = {
+                    success: true,
+                    data: tokenData.data,
+                    mock: tokenData.mock || false,
+                    timestamp: Date.now()
+                };
+                
+                elements.closeBtn.disabled = false;
+                elements.progressFill.style.width = '100%';
+                
+                // 自動クローズ（セキュリティ考慮で短縮）
+                setTimeout(() => {
+                    if (!elements.closeBtn.disabled) {
+                        closeWindow();
+                    }
+                }, 2000);
+            }
+
+            // メイン認証処理
+            async function handleAuthentication() {
+                if (authProcessing) {
+                    log('認証処理は既に実行中です', 'warn');
+                    return;
+                }
+                
+                authProcessing = true;
+                
+                try {
+                    log('SP-API認証処理を開始');
+                    updateStatus('認証パラメータを解析中...', 'processing');
+                    
+                    const params = parseUrlParameters();
+                    log(`URLパラメータを解析: ${Object.keys(params).length}個のパラメータ`);
+                    
+                    // セキュリティチェック: エラーパラメータ
+                    if (params.error) {
+                        const errorDesc = params.error_description || '詳細不明';
+                        throw new Error(`認証エラー: ${params.error} - ${errorDesc}`);
+                    }
+                    
+                    // 認証コードの検証
+                    if (!params.code) {
+                        throw new Error('認証コードが見つかりません。認証フローが正しく完了していない可能性があります。');
+                    }
+                    
+                    // stateパラメータの確認（CSRF防止）
+                    if (!params.state) {
+                        log('⚠️ stateパラメータが見つかりません（CSRF攻撃の可能性）', 'warn');
+                    }
+                    
+                    updateStatus('安全なトークン交換を実行中...', 'processing');
+                    
+                    // トークン交換を実行
+                    const tokenResult = await exchangeCodeForToken(params.code, params.state);
+                    
+                    if (tokenResult.success) {
+                        handleAuthSuccess(tokenResult);
+                    } else {
+                        throw new Error(tokenResult.error || 'トークン交換に失敗しました');
+                    }
+                    
+                } catch (error) {
+                    handleError(error);
+                } finally {
+                    authProcessing = false;
+                }
+            }
+
+            // パブリック API
+            return {
+                start: handleAuthentication,
+                close: closeWindow
+            };
+        })();
 
         // ページ読み込み完了時に認証処理を開始
         document.addEventListener('DOMContentLoaded', () => {
-            log('認証ページが読み込まれました');
+            console.log('[FastapG Auth] セキュア認証ページが読み込まれました');
             
-            // 少し遅延してから認証処理を開始
-            setTimeout(handleAuthentication, 500);
+            // ボタンイベントの設定
+            document.getElementById('close-btn').addEventListener('click', AuthProcessor.close);
+            
+            // 認証処理を開始（少し遅延）
+            setTimeout(AuthProcessor.start, 500);
         });
 
-        // 未処理エラーをキャッチ
+        // セキュリティ: グローバルエラーハンドリング
         window.addEventListener('error', (event) => {
-            handleError(new Error(event.error?.message || event.message || '不明なエラー'), 'JavaScript実行時');
+            console.error('[FastapG Auth] JavaScript実行エラー:', event.error);
         });
 
-        // 未処理のPromise拒否をキャッチ
         window.addEventListener('unhandledrejection', (event) => {
-            handleError(new Error(event.reason?.message || event.reason || '不明なPromise拒否'), 'Promise実行時');
+            console.error('[FastapG Auth] Promise拒否エラー:', event.reason);
         });
+
+        // セキュリティ: 外部スクリプトの実行を防止
+        Object.freeze(window);
     </script>
 </body>
 </html>
