@@ -3,32 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fastap;G - Amazon商品分析ツール</title>
+  <title>FastapG - Amazon商品分析ツール</title>
+  <link rel="icon" href="https://i.imgur.com/R5C5E4w.png" type="image/png">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; }
     h1, h2, h3 { color: #07A27B; }
-    h1 { border-bottom: 2px solid #07A27B; padding-bottom: 10px; }
+    .header { background-color: #1a1a1a; color: white; text-align: center; padding: 20px 0; margin-bottom: 30px; }
+    .header img { max-width: 120px; margin-bottom: 10px; }
+    .header h1 { color: white; font-size: 2.5em; margin: 0; border: none; }
+    .header p { color: #ccc; font-size: 1.2em; margin: 5px 0 0 0; }
+    .main-title { border-bottom: 2px solid #07A27B; padding-bottom: 10px; }
     .feature { margin-bottom: 30px; border-left: 3px solid #07A27B; padding-left: 15px; }
     .button { display: inline-block; background-color: #07A27B; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
-    .footer { margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; font-size: 0.9em; }
-    .screenshot { max-width: 100%; border: 1px solid #ddd; border-radius: 5px; margin: 15px 0; }
+    .footer { margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; font-size: 0.9em; text-align: center; }
+    .footer a { color: #07A27B; }
   </style>
 </head>
 <body>
-  <h1>Fastap;G - Amazon商品データ分析ツール</h1>
+
+  <header class="header">
+    <img src="https://i.imgur.com/R5C5E4w.png" alt="FastapG Logo">
+    <h1>FastapG</h1>
+    <p>-AmazonSellerTool-</p>
+  </header>
+
+  <h2 class="main-title">Amazon商品データ分析ツール</h2>
   
-  <p><strong>Fastap;G</strong>は、Amazon販売者向けのChrome拡張機能です。Amazon商品ページに価格推移、ランキング、在庫状況などの重要データを直接表示し、仕入れ判断を効率化します。</p>
+  <p><strong>FastapG</strong>は、Amazon販売者向けのChrome拡張機能です。Amazon商品ページに市場の重要データを直接表示し、仕入れ判断を効率化します。</p>
   
   <h2>主な機能</h2>
   
   <div class="feature">
-    <h3>価格推移グラフ</h3>
-    <p>過去の価格変動を視覚的に確認。新品・中古・Amazon・バイボックス価格の推移を一目で把握できます。</p>
+    <h3>市場データグラフ</h3>
+    <p>過去の価格変動を視覚的に確認。新品・中古・Amazon・カート価格の推移を一目で把握できます。</p>
   </div>
   
   <div class="feature">
     <h3>独自販売ランク分析</h3>
-    <p>商品の販売可能性をS〜Eの6段階で評価。過去の販売データと出品者数から算出した独自指標で仕入れ判断をサポートします。</p>
+    <p>商品の販売可能性をS〜Eの6段階で評価。過去の市場データと出品者数から算出した独自指標で仕入れ判断をサポートします。</p>
   </div>
   
   <div class="feature">
@@ -47,24 +59,24 @@
   </div>
   
   <div class="feature">
-    <h3>セラーアカウント連携</h3>
-    <p>Amazon Seller Centralと連携し、自社の在庫状況を商品ページ上で確認できます。</p>
+    <h3>セラーアカウント連携 (SP-API)</h3>
+    <p>Amazon Seller Centralと連携し、ご自身の在庫状況を商品ページ上で確認できます。</p>
   </div>
   
   <h2>導入方法</h2>
   <ol>
-    <li>Chrome ウェブストアから<strong>Fastap;G</strong>をインストール</li>
-    <li>オプション画面でKeepa APIキーを設定</li>
+    <li>Chrome ウェブストアから<strong>FastapG</strong>をインストール</li>
+    <li>オプション画面でAPIキーを設定</li>
     <li>Amazon商品ページにアクセスすると自動的にデータが表示されます</li>
   </ol>
   
   <a href="https://chromewebstore.google.com/detail/fastapg/anmiohclnhoakeaegnjggehnhkcdbboh" class="button" target="_blank">Chromeウェブストアで入手</a>
   
   <h2>利用料金</h2>
-  <p>Fastap;Gは<strong>無料</strong>でご利用いただけます。より詳細なデータを取得するにはKeepa APIキー（別途契約）が必要です。</p>
+  <p>FastapGは<strong>無料</strong>でご利用いただけます。詳細な市場データを取得するには、別途データサービスとの契約が必要です。</p>
   
   <div class="footer">
-    <p>© 2025 Fastap;G. All rights reserved.</p>
+    <p>© 2025 FastapG. All rights reserved.</p>
     <p><a href="support.html">サポート</a> | <a href="privacy-policy.html">プライバシーポリシー</a></p>
   </div>
 </body>
