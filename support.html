@@ -4,24 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FastapG - サポート</title>
+  <link rel="icon" href="https://i.imgur.com/R5C5E4w.png" type="image/png">
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
     h1, h2, h3 { color: #07A27B; }
-    h1 { border-bottom: 2px solid #07A27B; padding-bottom: 10px; }
+    .header { background-color: #1a1a1a; color: white; text-align: center; padding: 20px 0; margin-bottom: 30px; }
+    .header img { max-width: 120px; margin-bottom: 10px; }
+    .header h1 { color: white; font-size: 2.5em; margin: 0; border: none; }
+    .header p { color: #ccc; font-size: 1.2em; margin: 5px 0 0 0; }
+    .main-title { border-bottom: 2px solid #07A27B; padding-bottom: 10px; }
     .question { margin-bottom: 25px; }
     .question h3 { margin-bottom: 5px; border-left: 3px solid #07A27B; padding-left: 10px; }
-    .contact { background-color: #f8f8f8; padding: 20px; border-radius: 5px; margin: 30px 0; }
-    .footer { margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; font-size: 0.9em; }
+    .contact { background-color: #f0f0f0; padding: 20px; border-radius: 5px; margin: 30px 0; }
+    .footer { margin-top: 50px; border-top: 1px solid #ddd; padding-top: 20px; font-size: 0.9em; text-align: center; }
+    .footer a { color: #07A27B; }
   </style>
 </head>
 <body>
-  <h1>Fastap;G サポート</h1>
+
+  <header class="header">
+    <img src="https://i.imgur.com/R5C5E4w.png" alt="FastapG Logo">
+    <h1>FastapG</h1>
+    <p>-AmazonSellerTool-</p>
+  </header>
+
+  <h1 class="main-title">FastapG サポート</h1>
   
   <h2>よくある質問</h2>
   
   <div class="question">
-    <h3>Keepa APIキーはどこで取得できますか？</h3>
-    <p>Keepa APIキーは<a href="https://keepa.com/#!api" target="_blank">Keepaの公式サイト</a>から取得できます。無料プランと有料プランがあります。</p>
+    <h3>データ取得用のAPIキーはどこで取得できますか？</h3>
+    <p>本拡張機能で利用する市場データのAPIキーは、各データ提供サービスの公式サイトから取得できます。必要なAPIについてはオプションページをご確認ください。</p>
   </div>
   
   <div class="question">
@@ -30,19 +43,19 @@
     <ol>
       <li>ブラウザを再起動する</li>
       <li>拡張機能が有効になっていることを確認する</li>
-      <li>KeepaAPIキーが正しく設定されているか確認する</li>
+      <li>APIキーが正しく設定されているか確認する</li>
       <li>別のAmazon商品ページで試してみる</li>
     </ol>
   </div>
   
   <div class="question">
     <h3>セラーアカウント連携の設定方法は？</h3>
-    <p>設定画面の「セラーアカウント連携設定」セクションで「接続」ボタンをクリックし、Amazonの認証フローに従って連携を完了します。これにより、商品ページに自社の在庫情報が表示されます。</p>
+    <p>設定画面の「SP-API 連携」セクションで「Amazonと連携」ボタンをクリックし、Amazonの認証フローに従って連携を完了します。これにより、商品ページにご自身の在庫情報が表示されます。</p>
   </div>
   
   <div class="question">
     <h3>データが古いまたは間違っている場合は？</h3>
-    <p>データはKeepa APIから取得しています。最新のデータを表示するには、商品ページをリロードしてみてください。また、特定の商品ではデータが限られている場合があります。</p>
+    <p>データは外部の市場データAPIから取得しています。最新のデータを表示するには、商品ページをリロードしてみてください。また、特定の商品ではデータが限られている場合があります。</p>
   </div>
   
   <div class="question">
@@ -65,7 +78,7 @@
   <a href="product.html">商品ページに戻る</a>
   
   <div class="footer">
-    <p>© 2025 Fastap;G. All rights reserved.</p>
+    <p>© 2025 FastapG. All rights reserved.</p>
     <p><a href="product.html">ホーム</a> | <a href="privacy-policy.html">プライバシーポリシー</a></p>
   </div>
 </body>
